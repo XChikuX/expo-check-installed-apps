@@ -6,8 +6,7 @@
   <img src="https://img.shields.io/npm/dw/expo-check-installed-apps?color=darkgreen&style=flat-square&logo=npm" alt="npm downloads"/>
 </div>
 
-
-A **config plugin** for Expo to check for the existence of installed apps on Android and iOS.
+A **config plugin** for Expo to check for installed apps on Android and iOS.
 
 > **Note:** This library supports **Expo SDK 51 and above**.
 
@@ -16,46 +15,38 @@ A **config plugin** for Expo to check for the existence of installed apps on And
 ## Table of Contents
 
 - [Installation](#installation)
-  - [For Managed Expo Projects](#installation-in-managed-expo-projects)
-  - [For Bare React Native Projects](#installation-in-bare-react-native-projects)
 - [Setup](#setup)
-  - [Automatic Configuration](#automatic-configuration)
+  - [Config Plugin (Recommended)](#config-plugin-recommended)
   - [Manual Configuration](#manual-configuration)
 - [API Documentation](#api-documentation)
   - [`checkInstalledApps`](#checkinstalledapps)
+- [Platform Details](#platform-details)
 - [Example Usage](#example-usage)
 - [Contributing](#contributing)
-- [Support the Project](#support-the-project)
 
 ---
 
 ## Installation
 
-You can find the package on npm: [expo-check-installed-apps](https://www.npmjs.com/package/expo-check-installed-apps).
+```bash
+npx expo install expo-check-installed-apps
+```
 
-### Installation in Managed Expo Projects
-
-For [managed Expo projects](https://docs.expo.dev/archive/managed-vs-bare/), follow the installation instructions in the [API documentation for the latest stable release](https://docs.expo.dev/versions/latest/sdk/android-check-installed-apps/).
-
-> If documentation for managed projects is unavailable, this library may not yet be supported within managed workflows and is likely to be included in an upcoming Expo SDK release.
-
-### Installation in Bare React Native Projects
-
-For bare React Native projects, ensure you have [installed and configured the `expo` package](https://docs.expo.dev/bare/installing-expo-modules/) before proceeding.
-
-Install the package via npm:
+Or with npm:
 
 ```bash
 npm install expo-check-installed-apps
 ```
 
+For bare React Native projects, ensure you have [installed and configured the `expo` package](https://docs.expo.dev/bare/installing-expo-modules/) before proceeding.
+
 ---
 
 ## Setup
 
-### Automatic Configuration
+### Config Plugin (Recommended)
 
-If using Expo's **prebuild method**, you can configure the plugin automatically in your `app.json` or `app.config.js` file. Specify the package names and URL schemes for the apps you want to check:
+Add the plugin to your `app.json` or `app.config.js`. You must declare which apps you want to query on each platform:
 
 ```json
 {
@@ -73,13 +64,22 @@ If using Expo's **prebuild method**, you can configure the plugin automatically 
 }
 ```
 
+Then run `npx expo prebuild` to apply the changes to your native projects.
+
+**Important notes:**
+
+- **Android** values are package names (e.g., `com.facebook.katana`). These get added as `<queries><package>` entries in `AndroidManifest.xml`, required by Android 11+ for package visibility.
+- **iOS** values are URL scheme names (e.g., `fb`, `twitter`). These get added to `LSApplicationQueriesSchemes` in `Info.plist`. iOS limits this to 50 schemes.
+- Both keys are **optional**. Omitting a key skips configuration for that platform. You do not need to pass empty arrays.
+- The plugin only **adds** entries. It will not remove entries added by other plugins.
+
 ### Manual Configuration
 
-If you are not using `app.json` or `app.config.js`, you'll need to manually update your native project files.
+If you are not using the config plugin, update your native project files directly.
 
 #### Android
 
-Add the package names to your `AndroidManifest.xml`:
+Add package names to `AndroidManifest.xml`:
 
 ```xml
 <manifest>
@@ -92,7 +92,7 @@ Add the package names to your `AndroidManifest.xml`:
 
 #### iOS
 
-Add the URL schemes to your `Info.plist`:
+Add URL schemes to `Info.plist`:
 
 ```xml
 <key>LSApplicationQueriesSchemes</key>
@@ -108,19 +108,35 @@ Add the URL schemes to your `Info.plist`:
 
 ### `checkInstalledApps`
 
-Checks whether specific apps are installed on the user's device.
+Checks whether specific apps are installed on the device.
+
+```typescript
+import { checkInstalledApps } from "expo-check-installed-apps";
+```
 
 #### Parameters
 
-- **`packageNames`** (`Array<string>`):  
-  An array of package names (for Android) or URL schemes (for iOS) to check.
+- **`packageNames`** (`Array<string>`): An array of identifiers to check.
+  - **Android**: Package names (e.g., `"com.facebook.katana"`)
+  - **iOS**: URL schemes, with or without `://` suffix (e.g., `"fb"` or `"fb://"`)
 
 #### Returns
 
-- **`Promise<Record<string, boolean>>`**:  
-  Resolves to an object where keys are package names or URL schemes, and values are booleans:
-  - `true`: App is installed.
-  - `false`: App is not installed.
+- **`Promise<Record<string, boolean>>`**: Object mapping each input identifier to `true` (installed) or `false` (not installed).
+
+---
+
+## Platform Details
+
+### Android
+
+Uses `PackageManager.getPackageInfo()` to check if a package is installed. Requires the package to be declared in `<queries>` on Android 11+.
+
+### iOS
+
+Uses `UIApplication.canOpenURL()` to check if a URL scheme is registered. The library automatically appends `://` to bare scheme names, so both `"fb"` and `"fb://"` work as input. The scheme must be declared in `LSApplicationQueriesSchemes` or the check will always return `false`.
+
+**Finding iOS URL schemes:** Each app registers its own URL schemes. You can find them in the app's `Info.plist` under `CFBundleURLSchemes`, or search online for "[app name] URL scheme".
 
 ---
 
@@ -130,43 +146,25 @@ Checks whether specific apps are installed on the user's device.
 import { checkInstalledApps } from "expo-check-installed-apps";
 import { Platform } from "react-native";
 
-const packageNames: string[] =
-  Platform.select({
-    android: ["com.google.android.apps.fitness", "com.android.chrome"], // Use package name of android apps
-    ios: ["fb://", "twitter://"], // Use proper url scheme of ios apps
-  }) || [];
+const apps = Platform.select({
+  android: ["com.facebook.katana", "com.android.chrome"],
+  ios: ["fb", "twitter"],
+}) || [];
 
-checkInstalledApps(packageNames)
-  .then((installedApps) => {
-    console.log(installedApps);
-  })
-  .catch((error) => {
-    console.error("Error checking installed apps:", error);
-  });
-```
-
-### Example Response
-
-```json
-{
-  "com.google.android.apps.fitness": false,
-  "com.android.chrome": true,
-  "fb://": true,
-  "twitter://": false
-}
+const result = await checkInstalledApps(apps);
+console.log(result);
+// Android: { "com.facebook.katana": true, "com.android.chrome": true }
+// iOS: { "fb": true, "twitter": false }
 ```
 
 ---
 
 ## Contributing
 
-Contributions are welcome!
+Contributions are welcome! Please open an issue or submit a pull request.
 
 ---
 
-## Support the Project
+## License
 
-If you find this library helpful, consider supporting it:
-
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20Me-orange?logo=buymeacoffee)](https://www.buymeacoffee.com/mantu.728)  
-[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue?logo=paypal)](https://paypal.me/Monty728)
+Apache-2.0

@@ -9,6 +9,60 @@ interface PluginOptions {
   ios?: string[];
 }
 
+// Top 50 dating-app iOS URL schemes (matches src/datingApps.ts)
+const defaultIosSchemes: string[] = [
+  "tinder",
+  "bumble",
+  "badoo",
+  "hinge",
+  "grindr",
+  "okcupid",
+  "pof",
+  "match",
+  "happn",
+  "coffeemeetsbagel",
+  "feeld",
+  "zoosk",
+  "eharmony",
+  "hermobile",
+  "theleague",
+  "hily",
+  "taimi",
+  "clover",
+  "scruff",
+  "jackd",
+  "hornet",
+  "blued",
+  "dilmil",
+  "meetme",
+  "chispa",
+  "blk",
+  "stir",
+  "jdate",
+  "christianmingle",
+  "seeking",
+  "tantan",
+  "momochat",
+  "soul",
+  "azar",
+  "wink",
+  "sweetring",
+  "innercircle",
+  "luxy",
+  "raya",
+  "snack",
+  "loxclub",
+  "thursday",
+  "boo",
+  "loop",
+  "iris",
+  "bumpy",
+  "lovoo",
+  "meetic",
+  "tagged",
+  "skout",
+];
+
 const withAndroid: ConfigPlugin<PluginOptions> = (config, { android }) => {
   if (!android) {
     return config;
@@ -85,6 +139,12 @@ const withExpoCheckInstalledApps: ConfigPlugin<PluginOptions> = (
   opts
 ) => {
   const options = opts || {};
+
+  // Fall back to built-in dating-app schemes when no iOS list is provided
+  if (!options.ios || options.ios.length === 0) {
+    options.ios = defaultIosSchemes;
+  }
+
   config = withAndroid(config, options);
   config = withIos(config, options);
   return config;

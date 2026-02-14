@@ -26,7 +26,6 @@
       [
         "../app.plugin.js",
         {
-          "android": ["com.android.chrome", "com.expo.flash.qr"],
           "ios": ["fb", "twitter"]
         }
       ]

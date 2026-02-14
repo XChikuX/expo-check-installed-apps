@@ -16,8 +16,8 @@ A **config plugin** for Expo to check for installed apps on Android and iOS.
 
 - [Installation](#installation)
 - [Setup](#setup)
-  - [Config Plugin (Recommended)](#config-plugin-recommended)
-  - [Manual Configuration](#manual-configuration)
+  - [Android](#android)
+  - [iOS](#ios)
 - [API Documentation](#api-documentation)
   - [`checkInstalledApps`](#checkinstalledapps)
 - [Platform Details](#platform-details)
@@ -44,9 +44,15 @@ For bare React Native projects, ensure you have [installed and configured the `e
 
 ## Setup
 
-### Config Plugin (Recommended)
+### Android
 
-Add the plugin to your `app.json` or `app.config.js`. You must declare which apps you want to query on each platform:
+**No configuration required.** The library's own `AndroidManifest.xml` includes a broad `<queries>` intent for `android.intent.action.MAIN`, which gives visibility to all installed apps on Android 11+. Just pass package names to `checkInstalledApps()` at runtime.
+
+### iOS
+
+iOS requires URL schemes to be declared in `LSApplicationQueriesSchemes` (Info.plist) before `canOpenURL` will work. Use the config plugin to set this up automatically.
+
+Add the plugin to your `app.json` or `app.config.js` with the iOS schemes you want to query:
 
 ```json
 {
@@ -55,8 +61,7 @@ Add the plugin to your `app.json` or `app.config.js`. You must declare which app
       [
         "expo-check-installed-apps",
         {
-          "android": ["com.facebook.katana", "com.twitter.android"],
-          "ios": ["fb", "twitter"]
+          "ios": ["fb", "twitter", "tinder"]
         }
       ]
     ]
@@ -64,35 +69,18 @@ Add the plugin to your `app.json` or `app.config.js`. You must declare which app
 }
 ```
 
-Then run `npx expo prebuild` to apply the changes to your native projects.
+Then run `npx expo prebuild` to apply the changes.
 
 **Important notes:**
 
-- **Android** values are package names (e.g., `com.facebook.katana`). These get added as `<queries><package>` entries in `AndroidManifest.xml`, required by Android 11+ for package visibility.
-- **iOS** values are URL scheme names (e.g., `fb`, `twitter`). These get added to `LSApplicationQueriesSchemes` in `Info.plist`. iOS limits this to 50 schemes.
-- Both keys are **optional**. Omitting a key skips configuration for that platform. You do not need to pass empty arrays.
-- The plugin only **adds** entries. It will not remove entries added by other plugins.
+- Values are bare URL scheme names (e.g., `"fb"`, not `"fb://"`). The plugin normalizes these automatically.
+- iOS limits `LSApplicationQueriesSchemes` to **50 schemes**.
+- The plugin only **adds** entries — it will not remove entries added by other plugins.
+- The `android` key is also supported if you want to add specific `<queries><package>` entries, but this is typically unnecessary.
 
-### Manual Configuration
+#### Manual iOS Configuration
 
-If you are not using the config plugin, update your native project files directly.
-
-#### Android
-
-Add package names to `AndroidManifest.xml`:
-
-```xml
-<manifest>
-    <queries>
-        <package android:name="com.facebook.katana"/>
-        <package android:name="com.twitter.android"/>
-    </queries>
-</manifest>
-```
-
-#### iOS
-
-Add URL schemes to `Info.plist`:
+If you are not using the config plugin, add URL schemes to `Info.plist` directly:
 
 ```xml
 <key>LSApplicationQueriesSchemes</key>
@@ -130,13 +118,13 @@ import { checkInstalledApps } from "expo-check-installed-apps";
 
 ### Android
 
-Uses `PackageManager.getPackageInfo()` to check if a package is installed. Requires the package to be declared in `<queries>` on Android 11+.
+Uses `PackageManager.getPackageInfo()` to check if a package is installed. The library's manifest already declares a broad intent query, so no additional configuration is needed.
 
 ### iOS
 
-Uses `UIApplication.canOpenURL()` to check if a URL scheme is registered. The library automatically appends `://` to bare scheme names, so both `"fb"` and `"fb://"` work as input. The scheme must be declared in `LSApplicationQueriesSchemes` or the check will always return `false`.
+Uses `UIApplication.canOpenURL()` to check if a URL scheme is registered. The library automatically appends `://` to bare scheme names, so both `"fb"` and `"fb://"` work as input. The scheme **must** be declared in `LSApplicationQueriesSchemes` or the check will always return `false`.
 
-**Finding iOS URL schemes:** Each app registers its own URL schemes. You can find them in the app's `Info.plist` under `CFBundleURLSchemes`, or search online for "[app name] URL scheme".
+**Finding iOS URL schemes:** Each app registers its own URL schemes. You can find them in the app's `Info.plist` under `CFBundleURLSchemes`, or search online for "[app name] URL scheme iOS".
 
 ---
 

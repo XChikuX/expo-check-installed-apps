@@ -1,9 +1,9 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
-import { checkInstalledApps, hello } from "expo-check-installed-apps";
+import { checkInstalledApps } from "expo-check-installed-apps";
 import { useEffect, useState } from "react";
 
 export default function App() {
-  const [result, setResult] = useState({});
+  const [result, setResult] = useState<Record<string, boolean>>({});
   const packageNames: string[] =
     Platform.select({
       android: [
@@ -11,26 +11,23 @@ export default function App() {
         "com.android.chrome",
         "com.expo.flash.qr",
       ],
-      ios: ["fb://", "twitter://"],
+      ios: ["fb", "twitter"],
     }) || [];
 
   useEffect(() => {
     const checkInstalled = async () => {
       const checkInstalledAppsResult = await checkInstalledApps(packageNames);
       setResult(checkInstalledAppsResult);
-      console.log(
-        "🚀 ~ file: App.tsx:15 ~ checkInstalled ~ checkApp ===> ",
-        checkInstalledAppsResult
-      );
+      console.log("Installed apps check result:", checkInstalledAppsResult);
     };
     checkInstalled();
   }, []);
 
   return (
     <View style={styles.container}>
-      <Text>{hello()}</Text>
+      <Text style={styles.heading}>Installed Apps Check</Text>
       <Text style={styles.resultText}>
-        {JSON.stringify(result, null, 2)} {/* Pretty print JSON */}
+        {JSON.stringify(result, null, 2)}
       </Text>
     </View>
   );
@@ -43,6 +40,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 40,
+  },
+  heading: {
+    fontWeight: "bold",
+    fontSize: 20,
+    marginBottom: 20,
   },
   resultText: {
     fontWeight: "bold",
